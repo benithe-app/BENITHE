@@ -1,0 +1,14 @@
+__pycache__/
+
+.env
+
+# Arquivos privados e locais
+backups/
+*.dump
+*.db
+env_*.txt
+index_antes*.html
+*.pyc
+.DS_Store
+venv/
+.venv/

@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Benithe | Se Cuide para Cuidar</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f1f7f7;
+            color: #334155;
+        }
+
+        header {
+            background: white;
+            padding: 22px;
+            text-align: center;
+            border-bottom: 1px solid #dce8e8;
+        }
+
+        header h1 {
+            color: #168b83;
+            margin: 0;
+            font-size: 29px;
+        }
+
+        header p {
+            margin: 6px 0 0;
+            color: #64748b;
+            font-size: 13px;
+        }
+
+        main {
+            max-width: 760px;
+            margin: 35px auto;
+            padding: 0 18px;
+        }
+
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 18px;
+            box-shadow: 0 4px 18px rgba(0,0,0,0.05);
+            margin-bottom: 25px;
+        }
+
+        h2 {
+            color: #245c59;
+            margin-top: 0;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin: 18px 0 8px;
+            font-size: 14px;
+        }
+
+        select, textarea {
+            width: 100%;
+            padding: 13px;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            font-size: 15px;
+            background: white;
+        }
+
+        textarea {
+            resize: vertical;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            margin-top: 18px;
+            background: #168b83;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #106d67;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: wait;
+        }
+
+        .resultado {
+            display: none;
+            background: #effaf8;
+            border-left: 5px solid #168b83;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 22px;
+        }
+
+        .resultado h3 {
+            color: #14766f;
+            margin-top: 0;
+        }
+
+        .resultado p {
+            line-height: 1.6;
+        }
+
+        .atencao {
+            display: inline-block;
+            padding: 6px 10px;
+            border-radius: 20px;
+            background: #e2e8f0;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .registro {
+            background: white;
+            border: 1px solid #e2e8f0;
+            padding: 16px;
+            margin-bottom: 12px;
+            border-radius: 12px;
+        }
+
+        .registro strong {
+            color: #168b83;
+        }
+
+        .registro small {
+            color: #94a3b8;
+        }
+
+        .mensagem-erro {
+            color: #b91c1c;
+            margin-top: 12px;
+            font-size: 14px;
+        }
+
+        footer {
+            text-align: center;
+            padding: 25px;
+            color: #94a3b8;
+            font-size: 12px;
+        }
+    </style>
+
+<style>
+#benithe-auth {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    background: #f7faf9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    overflow-y: auto;
+    font-family: inherit;
+}
+#benithe-auth .auth-card {
+    background: white;
+    width: 100%;
+    max-width: 420px;
+    padding: 32px;
+    border-radius: 18px;
+    box-shadow: 0 8px 35px rgba(0,0,0,.09);
+}
+#benithe-auth h2 {
+    color: #168b83;
+    margin-top: 0;
+}
+#benithe-auth input {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 13px;
+    margin: 10px 0 16px;
+    border: 1px solid #d8e3e1;
+    border-radius: 9px;
+    font-size: 16px;
+}
+#benithe-auth button {
+    width: 100%;
+    padding: 13px;
+    border: 0;
+    border-radius: 9px;
+    background: #168b83;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+}
+#benithe-auth .auth-link {
+    background: none;
+    color: #168b83;
+    margin-top: 12px;
+}
+#benithe-auth .auth-message {
+    font-size: 14px;
+    margin-top: 12px;
+}
+#benithe-logout {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    z-index: 99998;
+    border: 0;
+    border-radius: 8px;
+    padding: 9px 14px;
+    background: #168b83;
+    color: white;
+    cursor: pointer;
+}
+</style>
+
+
+<style>
+body {
+    background: #F8F5F2;
+    color: #49364F;
+}
+header {
+    position: relative;
+    background: #FFFFFF;
+    padding: 28px 100px;
+    border-bottom: 1px solid #E8E0EB;
+}
+header h1 {
+    color: #49364F;
+    font-size: 38px;
+    font-weight: 700;
+    letter-spacing: 2px;
+}
+header p {
+    color: #557789;
+    font-size: 14px;
+    letter-spacing: 1px;
+    margin-top: 8px;
+}
+h2, .resultado h3 {
+    color: #49364F;
+}
+button {
+    background: #49364F;
+}
+button:hover {
+    background: #38283D;
+}
+.resultado {
+    background: #F1EAF2;
+    border-left-color: #806C91;
+}
+.registro strong {
+    color: #557789;
+}
+#benithe-auth {
+    background: #F8F5F2;
+}
+#benithe-auth h2 {
+    color: #49364F;
+}
+#benithe-auth button {
+    background: #49364F;
+}
+#benithe-auth .auth-link {
+    color: #557789;
+}
+#benithe-logout {
+    position: absolute;
+    top: 14px;
+    right: 18px;
+    width: auto;
+    margin: 0;
+    padding: 9px 16px;
+    background: #557789;
+}
+#benithe-logout:hover {
+    background: #405F70;
+}
+@media (max-width: 520px) {
+    header {
+        padding: 62px 16px 22px;
+    }
+    header h1 {
+        font-size: 32px;
+    }
+    #benithe-logout {
+        top: 10px;
+        right: 10px;
+    }
+}
+</style>
+
+</head>
+
+<body>
+
+<header>
+    <h1>BENITHE</h1>
+    <p>Se cuide para cuidar melhor</p>
+</header>
+
+<main>
+
+    <section class="card">
+        <h2>Como você está se sentindo hoje?</h2>
+
+        <p>Este é um espaço de acolhimento e autocuidado para profissionais da saúde.</p>
+
+        <form id="emotion-form">
+
+            <label for="emotion">Escolha sua emoção ou estado atual:</label>
+
+            <select id="emotion" required>
+                <option value="">Selecione uma emoção</option>
+                <option value="ansiedade">Ansiedade</option>
+                <option value="tensao">Tensão</option>
+                <option value="cansaco">Cansaço</option>
+                <option value="sobrecarga">Sobrecarga</option>
+                <option value="alegria">Alegria</option>
+                <option value="tristeza">Tristeza</option>
+                <option value="animacao">Animação</option>
+                <option value="irritacao">Irritação</option>
+                <option value="frustracao">Frustração</option>
+                <option value="solidao">Solidão</option>
+                <option value="desmotivacao">Desmotivação</option>
+                <option value="medo">Medo</option>
+                <option value="esgotamento">Esgotamento</option>
+                <option value="sofrimento_intenso">Sofrimento intenso</option>
+            </select>
+
+            <label for="notes">Notas e reflexões (opcional):</label>
+
+            <textarea
+                id="notes"
+                rows="4"
+                maxlength="2000"
+                placeholder="Escreva sobre seu plantão, sua rotina ou o que está sentindo..."
+            ></textarea>
+
+            <button type="submit" id="save-button">
+                Registrar meu estado emocional
+            </button>
+
+            <p id="error-message" class="mensagem-erro"></p>
+
+        </form>
+
+        <div id="resultado" class="resultado" aria-live="polite">
+            <h3 id="resultado-emocao"></h3>
+
+            <p><strong>Acolhimento:</strong></p>
+            <p id="acolhimento"></p>
+
+            <p><strong>Intervenção prática:</strong></p>
+            <p id="intervencao"></p>
+
+            <p><strong>Indicador de atenção:</strong></p>
+            <span id="nivel-atencao" class="atencao"></span>
+
+            <p>
+                <small>Este indicador é apenas informativo e não representa avaliação ou diagnóstico clínico.</small>
+            </p>
+        </div>
+
+    </section>
+
+    <section class="card">
+        <h2>Meu diário emocional</h2>
+        <p>Seus registros recentes aparecerão abaixo.</p>
+
+        <div id="entries-list">
+            <p>Aguardando registros...</p>
+        </div>
+    </section>
+
+</main>
+
+<footer>
+    Benithe © 2026 — Acolhimento e autocuidado para profissionais da saúde.
+</footer>
+
+<script>
+
+    const form = document.getElementById("emotion-form");
+    const resultado = document.getElementById("resultado");
+    const lista = document.getElementById("entries-list");
+    const botao = document.getElementById("save-button");
+
+    // Enviar emoção para o Python
+    form.addEventListener("submit", async function(event) {
+
+        event.preventDefault();
+
+        const emocao = document.getElementById("emotion").value;
+        const notas = document.getElementById("notes").value;
+        const erro = document.getElementById("error-message");
+
+        erro.textContent = "";
+        botao.disabled = true;
+        botao.textContent = "Registrando...";
+
+        try {
+
+            const resposta = await fetch("/api/emocao", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    emocao: emocao,
+                    notas: notas
+                })
+            });
+
+            const dados = await resposta.json();
+
+            if (!resposta.ok || dados.erro) {
+                throw new Error(dados.erro || "Não foi possível registrar.");
+            }
+
+            // Exibir acolhimento
+            document.getElementById("resultado-emocao").textContent =
+                "Registro: " + dados.emocao;
+
+            document.getElementById("acolhimento").textContent =
+                dados.mensagem_acolhimento;
+
+            document.getElementById("intervencao").textContent =
+                dados.intervencao_pratica;
+
+            document.getElementById("nivel-atencao").textContent =
+                dados.nivel_atencao.toUpperCase();
+
+            resultado.style.display = "block";
+
+            form.reset();
+
+            await carregarHistorico();
+
+            resultado.scrollIntoView({
+                behavior: "smooth",
+                block: "nearest"
+            });
+
+        } catch (error) {
+
+            erro.textContent = error.message;
+
+        } finally {
+
+            botao.disabled = false;
+            botao.textContent = "Registrar meu estado emocional";
+
+        }
+
+    });
+
+
+    // Buscar histórico no servidor
+    async function carregarHistorico() {
+
+        try {
+
+            const resposta = await fetch("/entries");
+
+            if (!resposta.ok) {
+                throw new Error("Não foi possível carregar o histórico.");
+            }
+
+            const registros = await resposta.json();
+
+            lista.innerHTML = "";
+
+            if (registros.length === 0) {
+                lista.textContent = "Você ainda não possui registros.";
+                return;
+            }
+
+            registros.forEach(function(registro) {
+
+                const item = document.createElement("div");
+                item.className = "registro";
+
+                const emocao = document.createElement("strong");
+                emocao.textContent = registro.emocao;
+
+                const data = document.createElement("small");
+                data.textContent = " — " + registro.data_hora;
+
+                const notas = document.createElement("p");
+                notas.textContent = registro.notas || "Sem notas adicionais.";
+
+                item.appendChild(emocao);
+                item.appendChild(data);
+                item.appendChild(notas);
+
+                lista.appendChild(item);
+
+            });
+
+        } catch (error) {
+
+            lista.textContent = "Não foi possível carregar os registros.";
+
+        }
+
+    }
+
+    // Carregar histórico ao abrir a página
+    carregarHistorico();
+
+</script>
+
+
+<div id="benithe-auth">
+  <div class="auth-card">
+    <h2>BENITHE</h2>
+    <p>Se cuide para cuidar melhor.</p>
+
+    <form id="benithe-login">
+      <h3>Entrar</h3>
+      <label for="benithe-email">E-mail</label>
+      <input id="benithe-email" type="email" required
+             placeholder="Seu e-mail">
+
+      <label for="benithe-password">Senha</label>
+      <input id="benithe-password" type="password"
+             required placeholder="Sua senha">
+
+      <button type="submit">Entrar</button>
+      <button type="button" class="auth-link"
+              id="benithe-show-register">
+        Criar minha conta
+      </button>
+    </form>
+
+    <form id="benithe-register" hidden>
+      <h3>Criar conta</h3>
+      <label for="benithe-name">Nome</label>
+      <input id="benithe-name" required
+             minlength="2" maxlength="120"
+             placeholder="Seu nome">
+
+      <label for="benithe-new-email">E-mail</label>
+      <input id="benithe-new-email" type="email"
+             required placeholder="Seu e-mail">
+
+      <label for="benithe-new-password">Senha</label>
+      <input id="benithe-new-password" type="password"
+             required minlength="8"
+             placeholder="Mínimo de 8 caracteres">
+
+      <button type="submit">Cadastrar</button>
+      <button type="button" class="auth-link"
+              id="benithe-show-login">
+        Já tenho uma conta
+      </button>
+    </form>
+
+    <p id="benithe-auth-message" class="auth-message"
+       role="status"></p>
+  </div>
+</div>
+
+
+<script>
+(function () {
+    const overlay = document.getElementById("benithe-auth");
+    const loginForm = document.getElementById("benithe-login");
+    const registerForm = document.getElementById("benithe-register");
+    const message = document.getElementById("benithe-auth-message");
+
+    function mostrarMensagem(texto, erro) {
+        message.textContent = texto;
+        message.style.color = erro ? "#b42318" : "#168b83";
+    }
+
+    function mostrarLogin() {
+        loginForm.hidden = false;
+        registerForm.hidden = true;
+        mostrarMensagem("", false);
+    }
+
+    document.getElementById("benithe-show-register")
+        .addEventListener("click", function () {
+            loginForm.hidden = true;
+            registerForm.hidden = false;
+            mostrarMensagem("", false);
+        });
+
+    document.getElementById("benithe-show-login")
+        .addEventListener("click", mostrarLogin);
+
+    async function verificarAcesso() {
+        try {
+            const resposta = await fetch("/api/me", {
+                credentials: "same-origin"
+            });
+
+            if (!resposta.ok) {
+                overlay.style.display = "flex";
+                return;
+            }
+
+            overlay.style.display = "none";
+
+            if (!document.getElementById("benithe-logout")) {
+                const sair = document.createElement("button");
+                sair.id = "benithe-logout";
+                sair.textContent = "Sair";
+                sair.addEventListener("click", async function () {
+                    await fetch("/api/logout", {
+                        method: "POST",
+                        credentials: "same-origin"
+                    });
+                    window.location.reload();
+                });
+                document.querySelector("header").appendChild(sair);
+            }
+        } catch (erro) {
+            mostrarMensagem("Não foi possível conectar ao servidor.", true);
+        }
+    }
+
+    loginForm.addEventListener("submit", async function (evento) {
+        evento.preventDefault();
+        mostrarMensagem("Verificando acesso...", false);
+
+        try {
+            const resposta = await fetch("/api/login", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                credentials: "same-origin",
+                body: JSON.stringify({
+                    email: document.getElementById("benithe-email").value,
+                    senha: document.getElementById("benithe-password").value
+                })
+            });
+
+            const dados = await resposta.json();
+
+            if (!resposta.ok) {
+                throw new Error(dados.detail || "Não foi possível entrar.");
+            }
+
+            window.location.reload();
+        } catch (erro) {
+            mostrarMensagem(erro.message, true);
+        }
+    });
+
+    registerForm.addEventListener("submit", async function (evento) {
+        evento.preventDefault();
+        mostrarMensagem("Criando sua conta...", false);
+
+        try {
+            const resposta = await fetch("/api/cadastro", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                credentials: "same-origin",
+                body: JSON.stringify({
+                    nome: document.getElementById("benithe-name").value,
+                    email: document.getElementById("benithe-new-email").value,
+                    senha: document.getElementById("benithe-new-password").value
+                })
+            });
+
+            const dados = await resposta.json();
+
+            if (!resposta.ok) {
+                throw new Error(dados.detail || "Não foi possível cadastrar.");
+            }
+
+            document.getElementById("benithe-email").value =
+                document.getElementById("benithe-new-email").value;
+
+            document.getElementById("benithe-password").value = "";
+            mostrarLogin();
+            mostrarMensagem("Conta criada! Agora entre com seu e-mail e senha.", false);
+
+        } catch (erro) {
+            mostrarMensagem(erro.message, true);
+        }
+    });
+
+    verificarAcesso();
+})();
+</script>
+
+</body>
+</html>
