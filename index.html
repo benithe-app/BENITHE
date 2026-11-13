@@ -305,6 +305,148 @@ button:hover {
 }
 </style>
 
+
+<style>
+.evolucao-resumo {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    margin: 22px 0;
+}
+
+.evolucao-indicador {
+    background: #F1EAF2;
+    border: 1px solid #E8E0EB;
+    border-radius: 12px;
+    padding: 18px;
+    min-width: 0;
+}
+
+.evolucao-indicador span {
+    display: block;
+    color: #557789;
+    font-size: 13px;
+    margin-bottom: 10px;
+}
+
+.evolucao-indicador strong {
+    display: block;
+    color: #49364F;
+    font-size: 25px;
+    overflow-wrap: anywhere;
+}
+
+#evolucao-emocional h3 {
+    color: #49364F;
+    margin: 22px 0 14px;
+}
+
+#grafico-emocoes {
+    display: flex;
+    flex-direction: column;
+    gap: 13px;
+    margin: 18px 0;
+}
+
+.emocao-linha {
+    display: grid;
+    grid-template-columns: 105px minmax(0, 1fr) 35px;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+}
+
+.emocao-barra-fundo {
+    height: 12px;
+    background: #E8E0EB;
+    border-radius: 20px;
+    overflow: hidden;
+}
+
+.emocao-barra {
+    height: 100%;
+    background: #557789;
+    border-radius: 20px;
+}
+
+.emocao-quantidade {
+    text-align: right;
+    color: #49364F;
+    font-weight: bold;
+}
+
+@media (max-width: 520px) {
+    .evolucao-resumo {
+        gap: 9px;
+    }
+
+    .evolucao-indicador {
+        padding: 13px;
+    }
+
+    .evolucao-indicador strong {
+        font-size: 21px;
+    }
+
+    .emocao-linha {
+        grid-template-columns: 88px minmax(0, 1fr) 25px;
+        gap: 7px;
+        font-size: 12px;
+    }
+}
+</style>
+
+
+<style>
+#benithe-welcome {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    background: rgba(35, 29, 39, 0.72);
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+    overflow-y: auto;
+}
+#benithe-welcome .welcome-card {
+    background: #F8F5F2;
+    color: #49364F;
+    width: 100%;
+    max-width: 540px;
+    padding: 30px;
+    border-radius: 18px;
+    box-sizing: border-box;
+    text-align: center;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.2);
+}
+#benithe-welcome h2 { color: #49364F; margin-bottom: 8px; }
+#benithe-welcome p { line-height: 1.7; text-align: left; }
+#benithe-welcome .welcome-highlight {
+    color: #49364F;
+    font-weight: bold;
+    text-align: center;
+    margin: 24px 0;
+}
+#benithe-welcome .welcome-slogan {
+    text-align: center;
+    color: #557789;
+}
+#benithe-welcome button {
+    background: #49364F;
+    color: white;
+    border: 0;
+    border-radius: 10px;
+    padding: 14px 20px;
+    width: 100%;
+    font-size: 16px;
+    cursor: pointer;
+}
+@media (max-width: 520px) {
+    #benithe-welcome .welcome-card { padding: 23px 19px; }
+}
+</style>
+
 </head>
 
 <body>
@@ -377,6 +519,35 @@ button:hover {
             </p>
         </div>
 
+    </section>
+
+    <section class="card" id="evolucao-emocional">
+        <h2>Minha evolução emocional</h2>
+        <p>Acompanhe seus registros e observe suas emoções ao longo do tempo.</p>
+
+        <label for="periodo-evolucao">Período:</label>
+        <select id="periodo-evolucao">
+            <option value="7">Últimos 7 dias</option>
+            <option value="30" selected>Últimos 30 dias</option>
+            <option value="todos">Todo o histórico</option>
+        </select>
+
+        <div class="evolucao-resumo">
+            <div class="evolucao-indicador">
+                <span>Total de registros</span>
+                <strong id="total-registros">0</strong>
+            </div>
+            <div class="evolucao-indicador">
+                <span>Emoção mais frequente</span>
+                <strong id="emocao-frequente">—</strong>
+            </div>
+        </div>
+
+        <h3>Frequência das emoções</h3>
+        <div id="grafico-emocoes">
+            <p>Seus indicadores aparecerão aqui após os registros.</p>
+        </div>
+        <p><small>Os dados representam seus registros pessoais e não constituem avaliação ou diagnóstico clínico.</small></p>
     </section>
 
     <section class="card">
@@ -472,10 +643,123 @@ button:hover {
 
 
     // Buscar histórico no servidor
+
+    // Converter a data do histórico para uso nos filtros
+    function converterDataRegistro(valor) {
+        const partes = valor.match(
+            /^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2})$/
+        );
+
+        if (!partes) return null;
+
+        return new Date(
+            Number(partes[3]),
+            Number(partes[2]) - 1,
+            Number(partes[1]),
+            Number(partes[4]),
+            Number(partes[5])
+        );
+    }
+
+    // Calcular e apresentar a evolução emocional
+    function atualizarEvolucao(registros) {
+        const periodo = document.getElementById("periodo-evolucao").value;
+        const totalElemento = document.getElementById("total-registros");
+        const frequenteElemento = document.getElementById("emocao-frequente");
+        const grafico = document.getElementById("grafico-emocoes");
+
+        let filtrados = registros;
+
+        if (periodo !== "todos") {
+            const dias = Number(periodo);
+            const inicio = new Date();
+            inicio.setHours(0, 0, 0, 0);
+            inicio.setDate(inicio.getDate() - dias + 1);
+
+            filtrados = registros.filter(function(registro) {
+                const data = converterDataRegistro(registro.data_hora);
+                return data && data >= inicio && data <= new Date();
+            });
+        }
+
+        const nomesEmocoes = {
+            ansiedade: "Ansiedade",
+            tensao: "Tensão",
+            cansaco: "Cansaço",
+            sobrecarga: "Sobrecarga",
+            alegria: "Alegria",
+            tristeza: "Tristeza",
+            animacao: "Animação",
+            irritacao: "Irritação",
+            frustracao: "Frustração",
+            solidao: "Solidão",
+            desmotivacao: "Desmotivação",
+            medo: "Medo",
+            esgotamento: "Esgotamento",
+            sofrimento_intenso: "Sofrimento intenso"
+        };
+
+        totalElemento.textContent = filtrados.length;
+        grafico.innerHTML = "";
+
+        if (filtrados.length === 0) {
+            frequenteElemento.textContent = "—";
+            grafico.textContent = "Ainda não há registros neste período.";
+            return;
+        }
+
+        const contagem = {};
+
+        filtrados.forEach(function(registro) {
+            const chave = registro.emocao || "não informado";
+            contagem[chave] = (contagem[chave] || 0) + 1;
+        });
+
+        const emocoesOrdenadas = Object.entries(contagem).sort(
+            function(a, b) {
+                return b[1] - a[1];
+            }
+        );
+
+        const maisFrequente = emocoesOrdenadas[0][0];
+        frequenteElemento.textContent =
+            nomesEmocoes[maisFrequente] || maisFrequente;
+
+        emocoesOrdenadas.forEach(function(par) {
+            const chave = par[0];
+            const quantidade = par[1];
+            const percentual = (quantidade / filtrados.length) * 100;
+
+            const linha = document.createElement("div");
+            linha.className = "emocao-linha";
+
+            const nome = document.createElement("span");
+            nome.textContent = nomesEmocoes[chave] || chave;
+
+            const fundo = document.createElement("div");
+            fundo.className = "emocao-barra-fundo";
+
+            const barra = document.createElement("div");
+            barra.className = "emocao-barra";
+            barra.style.width = percentual + "%";
+
+            fundo.appendChild(barra);
+
+            const numero = document.createElement("span");
+            numero.className = "emocao-quantidade";
+            numero.textContent = quantidade;
+
+            linha.appendChild(nome);
+            linha.appendChild(fundo);
+            linha.appendChild(numero);
+
+            grafico.appendChild(linha);
+        });
+    }
+
+    // Buscar histórico no servidor
     async function carregarHistorico() {
-
         try {
-
             const resposta = await fetch("/entries");
 
             if (!resposta.ok) {
@@ -483,6 +767,9 @@ button:hover {
             }
 
             const registros = await resposta.json();
+
+            // Atualizar indicadores usando os mesmos registros privados
+            atualizarEvolucao(registros);
 
             lista.innerHTML = "";
 
@@ -492,7 +779,6 @@ button:hover {
             }
 
             registros.forEach(function(registro) {
-
                 const item = document.createElement("div");
                 item.className = "registro";
 
@@ -510,16 +796,18 @@ button:hover {
                 item.appendChild(notas);
 
                 lista.appendChild(item);
-
             });
 
         } catch (error) {
-
             lista.textContent = "Não foi possível carregar os registros.";
-
         }
-
     }
+
+    // Atualizar os indicadores quando o período for alterado
+    document.getElementById("periodo-evolucao").addEventListener(
+        "change",
+        carregarHistorico
+    );
 
     // Carregar histórico ao abrir a página
     carregarHistorico();
@@ -613,6 +901,20 @@ button:hover {
 </div>
 
 
+
+<div id="benithe-welcome">
+    <div class="welcome-card">
+        <h2>Seja bem-vindo(a) ao BENITHE!</h2>
+        <p>Os profissionais da saúde dedicam grande parte de suas vidas ao cuidado do outro. Porém, a rotina intensa, o estresse e a sobrecarga emocional podem afetar sua própria saúde e qualidade de vida.</p>
+        <p>O BENITHE nasceu para oferecer a esses profissionais um espaço de acolhimento, reconhecimento das emoções e incentivo ao autocuidado.</p>
+        <p>Aqui, você poderá olhar para si, compreender o que sente e encontrar pequenas estratégias para cuidar também da sua saúde emocional.</p>
+        <p class="welcome-highlight">Porque quem cuida também merece ser cuidado.</p>
+        <h3>BENITHE</h3>
+        <p class="welcome-slogan">Se cuide para cuidar melhor</p>
+        <button type="button" id="benithe-welcome-start">Começar meu momento de cuidado</button>
+    </div>
+</div>
+
 <script>
 (function () {
     const overlay = document.getElementById("benithe-auth");
@@ -621,6 +923,18 @@ button:hover {
     const recoveryForm = document.getElementById("benithe-recovery");
     const resetForm = document.getElementById("benithe-reset");
     const message = document.getElementById("benithe-auth-message");
+
+    const welcomeOverlay = document.getElementById("benithe-welcome");
+
+    document.getElementById("benithe-welcome-start").addEventListener("click", function() {
+        var email = sessionStorage.getItem("benithe_email_boas_vindas");
+        if (email) {
+            localStorage.setItem("benithe_boas_vindas_v1_" + email, "sim");
+        }
+        sessionStorage.removeItem("benithe_email_boas_vindas");
+        welcomeOverlay.style.display = "none";
+    });
+
 
     function mostrarMensagem(texto, erro) {
         message.textContent = texto;
@@ -679,6 +993,19 @@ button:hover {
             }
 
             overlay.style.display = "none";
+
+            var emailBoasVindas = sessionStorage.getItem("benithe_email_boas_vindas");
+
+            if (emailBoasVindas) {
+                var chaveBoasVindas = "benithe_boas_vindas_v1_" + emailBoasVindas;
+
+                if (localStorage.getItem(chaveBoasVindas) !== "sim") {
+                    welcomeOverlay.style.display = "flex";
+                } else {
+                    sessionStorage.removeItem("benithe_email_boas_vindas");
+                }
+            }
+
 
             if (!document.getElementById("benithe-logout")) {
                 const sair = document.createElement("button");
@@ -797,7 +1124,11 @@ button:hover {
                 throw new Error(dados.detail || "Não foi possível entrar.");
             }
 
-            window.location.reload();
+            sessionStorage.setItem(
+               "benithe_email_boas_vindas",
+               document.getElementById("benithe-email").value.trim().toLowerCase()
+           );
+           window.location.reload();
         } catch (erro) {
             mostrarMensagem(erro.message, true);
         }
