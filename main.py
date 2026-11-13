@@ -8,6 +8,11 @@ import unicodedata
 import os
 import re
 import bcrypt
+import hashlib
+import secrets
+import json
+import urllib.request
+import urllib.error
 import psycopg2
 from jose import jwt, JWTError
 from database import get_db_connection
@@ -62,6 +67,15 @@ class LoginPayload(BaseModel):
 class EmocaoPayload(BaseModel):
     emocao: str = Field(..., min_length=1, max_length=60)
     notas: str = Field(default="", max_length=2000)
+
+
+class RecuperarSenhaPayload(BaseModel):
+    email: str = Field(..., min_length=5, max_length=255)
+
+
+class RedefinirSenhaPayload(BaseModel):
+    token: str = Field(..., min_length=20, max_length=200)
+    nova_senha: str = Field(..., min_length=8, max_length=72)
 
 
 # Biblioteca original de emoções e intervenções
@@ -378,3 +392,193 @@ def verificar_status():
         }
     except Exception:
         raise HTTPException(status_code=503, detail="Banco de dados indisponível.")
+
+
+# Enviar e-mail transacional pelo Brevo
+def enviar_email_recuperacao(destinatario, link):
+    api_key = os.getenv("BREVO_API_KEY")
+    remetente = os.getenv("BREVO_SENDER_EMAIL")
+    nome_remetente = os.getenv("BREVO_SENDER_NAME", "BENITHE")
+
+    if not api_key or not remetente:
+        raise RuntimeError("Configuração de e-mail incompleta.")
+
+    dados = {
+        "sender": {
+            "name": nome_remetente,
+            "email": remetente
+        },
+        "to": [
+            {"email": destinatario}
+        ],
+        "subject": "Recuperação de senha - BENITHE",
+        "htmlContent": (
+            "<p>Olá!</p>"
+            "<p>Recebemos uma solicitação para redefinir sua senha "
+            "no BENITHE.</p>"
+            '<p><a href="' + link + '">Redefinir minha senha</a></p>'
+            "<p>Este link expira em 30 minutos. "
+            "Se você não solicitou, ignore este e-mail.</p>"
+        )
+    }
+
+    requisicao = urllib.request.Request(
+        "https://api.brevo.com/v3/smtp/email",
+        data=json.dumps(dados).encode("utf-8"),
+        headers={
+            "accept": "application/json",
+            "api-key": api_key,
+            "content-type": "application/json"
+        },
+        method="POST"
+    )
+
+    try:
+        with urllib.request.urlopen(requisicao, timeout=20) as resposta:
+            return resposta.status
+    except urllib.error.HTTPError as erro:
+        try:
+            resposta_erro = json.loads(
+                erro.read().decode("utf-8")
+            )
+            motivo = resposta_erro.get("message", "Sem detalhe")
+        except Exception:
+            motivo = "Não foi possível ler a resposta."
+
+        raise RuntimeError(
+            "Brevo recusou o envio. Código HTTP: "
+            + str(erro.code) + ". Motivo: " + str(motivo)
+        )
+    except urllib.error.URLError:
+        raise RuntimeError("Não foi possível conectar ao serviço de e-mail.")
+
+
+# Solicitar recuperação de senha
+@app.post("/api/recuperar-senha")
+def solicitar_recuperacao(payload: RecuperarSenhaPayload):
+    email = payload.email.strip().lower()
+
+    resposta_generica = {
+        "mensagem": (
+            "Se existir uma conta com esse e-mail, "
+            "você receberá instruções para recuperar sua senha."
+        )
+    }
+
+    with banco() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT id, email FROM usuarios "
+                "WHERE email = %s AND ativo = TRUE",
+                (email,)
+            )
+            usuario = cur.fetchone()
+
+            if not usuario:
+                return resposta_generica
+
+            token = secrets.token_urlsafe(32)
+            token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+            expiracao = datetime.now(timezone.utc) + timedelta(minutes=30)
+
+            cur.execute(
+                """
+                UPDATE tokens_recuperacao
+                SET usado_em = NOW()
+                WHERE usuario_id = %s AND usado_em IS NULL
+                """,
+                (usuario[0],)
+            )
+
+            cur.execute(
+                """
+                INSERT INTO tokens_recuperacao
+                    (usuario_id, token_hash, expira_em)
+                VALUES (%s, %s, %s)
+                """,
+                (usuario[0], token_hash, expiracao)
+            )
+
+    base_url = os.getenv("APP_BASE_URL", "").rstrip("/")
+    if not base_url:
+        raise HTTPException(
+            status_code=503,
+            detail="Serviço de recuperação temporariamente indisponível."
+        )
+
+    link = base_url + "/?token=" + token
+
+    try:
+        enviar_email_recuperacao(usuario[1], link)
+    except Exception as erro:
+        print("Falha no envio pela Brevo:", str(erro))
+        raise HTTPException(
+            status_code=503,
+            detail="Não foi possível enviar o e-mail agora. Tente novamente mais tarde."
+        )
+
+    return resposta_generica
+
+
+# Redefinir senha com token de recuperação
+@app.post("/api/redefinir-senha")
+def redefinir_senha(payload: RedefinirSenhaPayload):
+    if len(payload.nova_senha.encode("utf-8")) > 72:
+        raise HTTPException(
+            status_code=400,
+            detail="A senha deve ter no máximo 72 bytes."
+        )
+
+    token_hash = hashlib.sha256(
+        payload.token.encode("utf-8")
+    ).hexdigest()
+
+    nova_senha_hash = bcrypt.hashpw(
+        payload.nova_senha.encode("utf-8"),
+        bcrypt.gensalt()
+    ).decode("utf-8")
+
+    with banco() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT t.id, t.usuario_id
+                FROM tokens_recuperacao t
+                JOIN usuarios u ON u.id = t.usuario_id
+                WHERE t.token_hash = %s
+                  AND t.expira_em > NOW()
+                  AND t.usado_em IS NULL
+                  AND u.ativo = TRUE
+                FOR UPDATE OF t
+                """,
+                (token_hash,)
+            )
+
+            registro = cur.fetchone()
+
+            if not registro:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Link inválido ou expirado. Solicite uma nova recuperação."
+                )
+
+            cur.execute(
+                """
+                UPDATE usuarios
+                SET senha_hash = %s
+                WHERE id = %s
+                """,
+                (nova_senha_hash, registro[1])
+            )
+
+            cur.execute(
+                """
+                UPDATE tokens_recuperacao
+                SET usado_em = NOW()
+                WHERE usuario_id = %s
+                  AND usado_em IS NULL
+                """,
+                (registro[1],)
+            )
+
+    return {"mensagem": "Senha redefinida com sucesso. Faça login novamente."}

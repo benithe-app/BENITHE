@@ -539,8 +539,25 @@ button:hover {
 
       <button type="submit">Entrar</button>
       <button type="button" class="auth-link"
+              id="benithe-show-recovery">
+        Esqueci minha senha
+      </button>
+      <button type="button" class="auth-link"
               id="benithe-show-register">
         Criar minha conta
+      </button>
+    </form>
+
+    <form id="benithe-recovery" hidden>
+      <h3>Recuperar senha</h3>
+      <p>Informe seu e-mail para receber o link de recuperação.</p>
+      <label for="benithe-recovery-email">E-mail</label>
+      <input id="benithe-recovery-email" type="email"
+             required placeholder="Seu e-mail">
+      <button type="submit">Enviar link de recuperação</button>
+      <button type="button" class="auth-link"
+              id="benithe-recovery-back">
+        Voltar para entrar
       </button>
     </form>
 
@@ -567,6 +584,24 @@ button:hover {
       </button>
     </form>
 
+    <form id="benithe-reset" hidden>
+      <h3>Nova senha</h3>
+      <p>Cadastre sua nova senha de acesso.</p>
+      <label for="benithe-reset-password">Nova senha</label>
+      <input id="benithe-reset-password" type="password"
+             required minlength="8" maxlength="72"
+             placeholder="Mínimo de 8 caracteres">
+      <label for="benithe-reset-confirm">Confirmar nova senha</label>
+      <input id="benithe-reset-confirm" type="password"
+             required minlength="8" maxlength="72"
+             placeholder="Digite novamente sua senha">
+      <button type="submit">Salvar nova senha</button>
+      <button type="button" class="auth-link"
+              id="benithe-reset-back">
+        Voltar para entrar
+      </button>
+    </form>
+
     <p id="benithe-auth-message" class="auth-message"
        role="status"></p>
   </div>
@@ -578,6 +613,8 @@ button:hover {
     const overlay = document.getElementById("benithe-auth");
     const loginForm = document.getElementById("benithe-login");
     const registerForm = document.getElementById("benithe-register");
+    const recoveryForm = document.getElementById("benithe-recovery");
+    const resetForm = document.getElementById("benithe-reset");
     const message = document.getElementById("benithe-auth-message");
 
     function mostrarMensagem(texto, erro) {
@@ -588,13 +625,32 @@ button:hover {
     function mostrarLogin() {
         loginForm.hidden = false;
         registerForm.hidden = true;
+        recoveryForm.hidden = true;
+        resetForm.hidden = true;
         mostrarMensagem("", false);
     }
+
+    document.getElementById("benithe-show-recovery")
+        .addEventListener("click", function () {
+            loginForm.hidden = true;
+            registerForm.hidden = true;
+            recoveryForm.hidden = false;
+            resetForm.hidden = true;
+            mostrarMensagem("", false);
+        });
+
+    document.getElementById("benithe-recovery-back")
+        .addEventListener("click", mostrarLogin);
+
+    document.getElementById("benithe-reset-back")
+        .addEventListener("click", mostrarLogin);
 
     document.getElementById("benithe-show-register")
         .addEventListener("click", function () {
             loginForm.hidden = true;
             registerForm.hidden = false;
+            recoveryForm.hidden = true;
+            resetForm.hidden = true;
             mostrarMensagem("", false);
         });
 
@@ -602,6 +658,11 @@ button:hover {
         .addEventListener("click", mostrarLogin);
 
     async function verificarAcesso() {
+        if (tokenRecuperacao) {
+            overlay.style.display = "flex";
+            return;
+        }
+
         try {
             const resposta = await fetch("/api/me", {
                 credentials: "same-origin"
@@ -631,6 +692,84 @@ button:hover {
             mostrarMensagem("Não foi possível conectar ao servidor.", true);
         }
     }
+
+    recoveryForm.addEventListener("submit", async function (evento) {
+        evento.preventDefault();
+        mostrarMensagem("Solicitando recuperação...", false);
+
+        try {
+            const resposta = await fetch("/api/recuperar-senha", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                credentials: "same-origin",
+                body: JSON.stringify({
+                    email: document.getElementById("benithe-recovery-email").value
+                })
+            });
+
+            const dados = await resposta.json();
+
+            if (!resposta.ok) {
+                throw new Error(
+                    dados.detail || "Não foi possível solicitar a recuperação."
+                );
+            }
+
+            mostrarMensagem(
+                dados.mensagem || "Se existir uma conta com esse e-mail, você receberá instruções.",
+                false
+            );
+        } catch (erro) {
+            mostrarMensagem(erro.message, true);
+        }
+    });
+
+    resetForm.addEventListener("submit", async function (evento) {
+        evento.preventDefault();
+
+        const novaSenha = document.getElementById("benithe-reset-password").value;
+        const confirmacao = document.getElementById("benithe-reset-confirm").value;
+
+        if (novaSenha !== confirmacao) {
+            mostrarMensagem("As senhas não são iguais.", true);
+            return;
+        }
+
+        const token = new URLSearchParams(window.location.search).get("token");
+
+        if (!token) {
+            mostrarMensagem("Link de recuperação inválido. Solicite um novo.", true);
+            return;
+        }
+
+        mostrarMensagem("Salvando nova senha...", false);
+
+        try {
+            const resposta = await fetch("/api/redefinir-senha", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                credentials: "same-origin",
+                body: JSON.stringify({
+                    token: token,
+                    nova_senha: novaSenha
+                })
+            });
+
+            const dados = await resposta.json();
+
+            if (!resposta.ok) {
+                throw new Error(dados.detail || "Não foi possível redefinir a senha.");
+            }
+
+            window.history.replaceState({}, document.title, window.location.pathname);
+            resetForm.reset();
+            mostrarLogin();
+            mostrarMensagem("Senha alterada com sucesso! Entre com sua nova senha.", false);
+
+        } catch (erro) {
+            mostrarMensagem(erro.message, true);
+        }
+    });
 
     loginForm.addEventListener("submit", async function (evento) {
         evento.preventDefault();
@@ -692,6 +831,17 @@ button:hover {
             mostrarMensagem(erro.message, true);
         }
     });
+
+    const tokenRecuperacao = new URLSearchParams(window.location.search).get("token");
+
+    if (tokenRecuperacao) {
+        loginForm.hidden = true;
+        registerForm.hidden = true;
+        recoveryForm.hidden = true;
+        resetForm.hidden = false;
+        overlay.style.display = "flex";
+        mostrarMensagem("Defina sua nova senha abaixo.", false);
+    }
 
     verificarAcesso();
 })();
