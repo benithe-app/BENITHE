@@ -1,0 +1,11 @@
+{
+  "name": "BENITHE — Se cuide para cuidar melhor",
+  "short_name": "BENITHE",
+  "description": "Acolhimento e autocuidado para profissionais da saúde.",
+  "lang": "pt-BR",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#F8F5F2",
+  "theme_color": "#49364F"
+}

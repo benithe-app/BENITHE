@@ -190,6 +190,21 @@ def obter_usuario_atual(request: Request):
     return {"id": usuario[0], "nome": usuario[1], "email": usuario[2]}
 
 
+# Arquivos de instalação do BENITHE
+
+@app.get("/manifest.json")
+def manifesto():
+    return FileResponse(BASE_DIR / "manifest.json", media_type="application/manifest+json")
+
+
+@app.get("/icon-512.png")
+def icone_pwa():
+    return FileResponse(BASE_DIR / "icon-512.png", media_type="image/png")
+
+
+@app.get("/apple-touch-icon.png")
+def icone_iphone():
+    return FileResponse(BASE_DIR / "apple-touch-icon.png", media_type="image/png")
 # Página inicial original
 @app.get("/")
 def pagina_inicial():
